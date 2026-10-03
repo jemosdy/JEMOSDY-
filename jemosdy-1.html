@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b0f19">
+<title>JEMOSDY</title>
+<style>
+:root{--fond:#0b0f19;--carte:#141a29;--or:#d4af37;--texte:#f2f2f2;--doux:#8a93a6;--ok:#4cc38a;--non:#6b7387}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fond);color:var(--texte);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:20px 16px 40px;max-width:520px;margin-inline:auto}
+h1{color:var(--or);text-align:center;font-size:2.4rem;letter-spacing:.06em;margin:8px 0 2px}
+.sous{text-align:center;color:var(--doux);margin:0 0 20px}
+.mode{text-align:center;font-size:.85rem;color:var(--doux);margin-bottom:14px}
+.carte{background:var(--carte);border-radius:14px;padding:16px;margin-bottom:14px}
+.ligue{color:var(--or);font-size:.9rem;margin:0 0 6px}
+.equipes{font-size:1.3rem;font-weight:600;margin:0 0 4px}
+.date{color:var(--doux);font-size:.8rem;margin:0 0 12px}
+.barre{display:flex;height:10px;border-radius:5px;overflow:hidden;margin-bottom:6px}
+.barre i{display:block}
+.b1{background:var(--or)}.bn{background:#5b6479}.b2{background:#3f7cac}
+.legende{display:flex;justify-content:space-between;font-size:.9rem;margin-bottom:12px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;margin-bottom:12px}
+.stats b{display:block;font-size:1.1rem}
+.stats span{font-size:.75rem;color:var(--doux)}
+.pied{display:flex;justify-content:space-between;align-items:center;font-size:.9rem}
+.badge{padding:4px 12px;border-radius:99px;font-weight:700;font-size:.85rem}
+.signal{background:var(--ok);color:#062014}
+.nobet{background:transparent;border:1px solid var(--non);color:var(--non)}
+.cle{margin-top:24px}
+.cle label{display:block;font-size:.9rem;margin-bottom:6px}
+input{width:100%;padding:12px;border-radius:10px;border:1px solid #2a3248;background:#0f1422;color:var(--texte);font-size:1rem}
+button{width:100%;margin-top:10px;padding:13px;border-radius:10px;border:0;font-size:1rem;font-weight:600;cursor:pointer}
+.prim{background:var(--or);color:#1a1400}
+.sec{background:#222a3f;color:var(--texte)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--or);outline-offset:2px}
+.msg{color:#ff9b8a;font-size:.9rem;margin-top:10px}
+.aide{color:var(--doux);font-size:.85rem;line-height:1.5}
+.avert{color:var(--doux);font-size:.75rem;text-align:center;margin-top:20px;line-height:1.4}
+</style>
+</head>
+<body>
+<h1>JEMOSDY</h1>
+<p class="sous">Analyse football par IA</p>
+<div class="mode" id="mode"></div>
+<div id="liste"></div>
+
+<div class="carte cle">
+  <label for="cle">Adresse de ton relais Google (voir les explications)</label>
+  <input id="cle" type="text" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec" inputmode="url">
+  <button class="prim" id="charger">Charger les vrais matchs</button>
+  <button class="sec" id="demo">Revenir aux matchs démo</button>
+  <div class="msg" id="msg" role="alert"></div>
+  <p class="aide">Le relais est un petit programme Google gratuit qui garde ta clé secrète et va chercher les matchs pour l'appli.</p>
+</div>
+
+<p class="avert">Ce sont des estimations statistiques, pas des certitudes. Ne mise jamais d'argent que tu ne peux pas perdre.</p>
+
+<script>
+var LIGUES = [["PL","Premier League"],["SA","Serie A"],["DED","Eredivisie"]];
+var DEMO = [
+  ["Premier League","Arsenal","Chelsea",1.55,1.15,""],
+  ["Serie A","Inter","Torino",1.70,0.85,""],
+  ["Eredivisie","Ajax","PSV",1.45,1.50,""]
+];
+var SEUIL = 55; // confiance minimale (en %) pour afficher SIGNAL
+
+function pois(l,k){var r=Math.exp(-l);for(var i=1;i<=k;i++)r*=l/i;return r}
+
+function analyse(hx,ax){
+  var h=0,n=0,a=0,btts=0,o25=0,tot=0,best=0,sc="0-0";
+  for(var i=0;i<10;i++){for(var j=0;j<10;j++){
+    var p=pois(hx,i)*pois(ax,j);
+    tot+=p;
+    if(i>j)h+=p;else if(i===j)n+=p;else a+=p;
+    if(i>0&&j>0)btts+=p;
+    if(i+j>=3)o25+=p;
+    if(p>best){best=p;sc=i+"-"+j}
+  }}
+  var r=function(x){return Math.round(x/tot*100)};
+  var res={h:r(h),n:r(n),a:r(a),btts:r(btts),o25:r(o25),score:sc};
+  res.conf=Math.max(res.h,res.n,res.a);
+  return res;
+}
+
+function esc(s){var d=document.createElement("div");d.textContent=s;return d.innerHTML}
+
+function dessiner(matchs,mode){
+  document.getElementById("mode").textContent=mode;
+  var html="";
+  if(!matchs.length)html='<div class="carte">Aucun match à venir trouvé pour le moment.</div>';
+  matchs.forEach(function(m){
+    var r=analyse(m[3],m[4]);
+    var sig=r.conf>=SEUIL;
+    html+='<div class="carte"><p class="ligue">'+esc(m[0])+'</p>'
+      +'<p class="equipes">'+esc(m[1])+' vs '+esc(m[2])+'</p>'
+      +'<p class="date">'+esc(m[5])+'</p>'
+      +'<div class="barre"><i class="b1" style="width:'+r.h+'%"></i><i class="bn" style="width:'+r.n+'%"></i><i class="b2" style="width:'+r.a+'%"></i></div>'
+      +'<div class="legende"><span>1 : '+r.h+'%</span><span>N : '+r.n+'%</span><span>2 : '+r.a+'%</span></div>'
+      +'<div class="stats"><div><b>'+r.btts+'%</b><span>Les deux marquent</span></div><div><b>'+r.o25+'%</b><span>Plus de 2,5 buts</span></div><div><b>'+r.score+'</b><span>Score probable</span></div></div>'
+      +'<div class="pied"><span>Confiance : '+r.conf+'%</span><span class="badge '+(sig?'signal':'nobet')+'">'+(sig?'SIGNAL':'NO BET')+'</span></div></div>';
+  });
+  document.getElementById("liste").innerHTML=html;
+}
+
+async function api(chemin,relais){
+  var r=await fetch(relais+(relais.indexOf("?")<0?"?":"&")+"chemin="+encodeURIComponent(chemin));
+  if(!r.ok)throw new Error("Erreur du relais ("+r.status+").");
+  var j;
+  try{j=await r.json()}catch(e){throw new Error("Le relais ne répond pas correctement. Vérifie l'adresse et que l'accès est réglé sur « Tout le monde ».")}
+  if(j.errorCode===403||j.errorCode===401)throw new Error("Clé refusée. Vérifie la clé collée dans le relais Google.");
+  if(j.errorCode===429)throw new Error("Trop de demandes. Attends une minute puis réessaie.");
+  if(j.error||j.errorCode)throw new Error(j.message||j.error||"Erreur de données.");
+  return j;
+}
+
+async function charger(cle){
+  var msg=document.getElementById("msg");
+  msg.textContent="";
+  document.getElementById("mode").textContent="Chargement des matchs…";
+  try{
+    var tous=[];
+    for(var k=0;k<LIGUES.length;k++){
+      var code=LIGUES[k][0],nom=LIGUES[k][1];
+      var cl=(await api("competitions/"+code+"/standings",cle)).standings;
+      var tab=cl.filter(function(s){return s.type==="TOTAL"})[0].table;
+      var g=0,p=0,f={};
+      tab.forEach(function(t){g+=t.goalsFor;p+=t.playedGames});
+      if(!p)continue;
+      var moy=g/p;
+      tab.forEach(function(t){var pj=t.playedGames||1;f[t.team.id]={att:t.goalsFor/pj/moy,def:t.goalsAgainst/pj/moy}});
+      var ms=(await api("competitions/"+code+"/matches?status=SCHEDULED",cle)).matches.slice(0,3);
+      ms.forEach(function(m){
+        var A=f[m.homeTeam.id]||{att:1,def:1},B=f[m.awayTeam.id]||{att:1,def:1};
+        var hx=moy*1.1*A.att*B.def,ax=moy*0.9*B.att*A.def;
+        var d=new Date(m.utcDate).toLocaleString("fr-FR",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+        tous.push([nom,m.homeTeam.shortName||m.homeTeam.name,m.awayTeam.shortName||m.awayTeam.name,hx,ax,d]);
+      });
+    }
+    dessiner(tous,"Données réelles — prochains matchs");
+    try{localStorage.setItem("jemosdy_relais",cle)}catch(e){}
+  }catch(e){
+    msg.textContent=(e.message==="Failed to fetch")?"Impossible de joindre le relais. Vérifie ta connexion et l'adresse collée.":e.message;
+    dessiner(DEMO,"Mode démo — pas de données en temps réel");
+  }
+}
+
+document.getElementById("charger").onclick=function(){
+  var c=document.getElementById("cle").value.trim();
+  if(!c){document.getElementById("msg").textContent="Colle d'abord l'adresse de ton relais.";return}
+  charger(c);
+};
+document.getElementById("demo").onclick=function(){
+  document.getElementById("msg").textContent="";
+  dessiner(DEMO,"Mode démo — pas de données en temps réel");
+};
+
+var gardee="";
+try{gardee=localStorage.getItem("jemosdy_relais")||""}catch(e){}
+if(gardee){document.getElementById("cle").value=gardee;charger(gardee)}
+else dessiner(DEMO,"Mode démo — pas de données en temps réel");
+</script>
+</body>
+</html>
