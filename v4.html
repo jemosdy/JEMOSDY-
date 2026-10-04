@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0b0f19">
+<title>JEMOSDY</title>
+<style>
+:root{--fond:#0b0f19;--carte:#141a29;--or:#d4af37;--texte:#f2f2f2;--doux:#8a93a6;--ok:#4cc38a;--non:#6b7387}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fond);color:var(--texte);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:20px 16px 40px;max-width:520px;margin-inline:auto}
+h1{color:var(--or);text-align:center;font-size:2.4rem;letter-spacing:.06em;margin:8px 0 2px}
+.sous{text-align:center;color:var(--doux);margin:0 0 16px}
+.onglets{display:flex;gap:8px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px}
+.onglets button{margin:0;width:auto;flex:0 0 auto;white-space:nowrap;padding:10px 12px;font-size:.85rem;background:#222a3f;color:var(--texte)}
+.onglets button.on{background:var(--or);color:#1a1400}
+.mode{text-align:center;font-size:.85rem;color:var(--doux);margin-bottom:14px;min-height:1.2em}
+.carte{background:var(--carte);border-radius:14px;padding:16px;margin-bottom:14px}
+.ligue{color:var(--or);font-size:.9rem;margin:0 0 6px}
+.equipes{font-size:1.3rem;font-weight:600;margin:0 0 4px}
+.date{color:var(--doux);font-size:.8rem;margin:0 0 12px}
+.barre{display:flex;height:10px;border-radius:5px;overflow:hidden;margin-bottom:6px}
+.barre i{display:block}
+.b1{background:var(--or)}.bn{background:#5b6479}.b2{background:#3f7cac}
+.legende{display:flex;justify-content:space-between;font-size:.9rem;margin-bottom:12px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;margin-bottom:12px}
+.stats b{display:block;font-size:1.1rem}
+.stats span{font-size:.75rem;color:var(--doux)}
+.info{color:var(--doux);font-size:.82rem;margin:0 0 6px;line-height:1.35}
+.info b{color:var(--texte)}
+.mt{background:#0f1422;border-radius:10px;padding:10px;font-size:.85rem;margin:10px 0;line-height:1.4}
+.abs{display:flex;gap:8px;margin-bottom:12px}
+.mini{margin:0;width:auto;flex:1;padding:8px;font-size:.8rem;background:#222a3f;color:var(--texte)}
+.mini.on{background:#7a3b3b}
+.nav{display:flex;gap:8px;margin-bottom:12px}
+.nav button{margin:0;padding:10px 4px;font-size:.9rem;background:#222a3f;color:var(--texte)}
+.nav button.on{background:var(--or);color:#1a1400}
+.cp h3{margin:0 0 6px;color:var(--or);font-size:1.05rem}
+.it{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px solid #222a3f;font-size:.9rem}
+.it small{display:block;color:var(--doux);font-size:.78rem;margin-top:2px}
+.ok{color:var(--ok)}.ko{color:#ff9b8a}.at{color:var(--doux)}
+.pied{display:flex;justify-content:space-between;align-items:center;font-size:.9rem}
+.badge{padding:4px 12px;border-radius:99px;font-weight:700;font-size:.85rem}
+.signal{background:var(--ok);color:#062014}
+.nobet{background:transparent;border:1px solid var(--non);color:var(--non)}
+.cle{margin-top:24px}
+.cle label{display:block;font-size:.9rem;margin-bottom:6px}
+input{width:100%;padding:12px;border-radius:10px;border:1px solid #2a3248;background:#0f1422;color:var(--texte);font-size:1rem}
+button{width:100%;margin-top:10px;padding:13px;border-radius:10px;border:0;font-size:1rem;font-weight:600;cursor:pointer}
+button:disabled{opacity:.5}
+.prim{background:var(--or);color:#1a1400}
+.sec{background:#222a3f;color:var(--texte)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--or);outline-offset:2px}
+.msg{color:#ff9b8a;font-size:.9rem;margin-top:10px}
+.aide{color:var(--doux);font-size:.85rem;line-height:1.5}
+.avert{color:var(--doux);font-size:.75rem;text-align:center;margin-top:20px;line-height:1.4}
+</style>
+</head>
+<body>
+<h1>JEMOSDY</h1>
+<p class="sous">Analyse football par IA</p>
+<div class="nav" id="nav"></div>
+<div class="onglets" id="onglets"></div>
+<div class="mode" id="mode"></div>
+<div id="liste"></div>
+
+<div class="carte cle">
+  <label for="cle">Adresse de ton relais Google</label>
+  <input id="cle" type="text" autocomplete="off" inputmode="url" placeholder="https://script.google.com/macros/s/…/exec">
+  <button class="prim" id="charger">Charger les vrais matchs</button>
+  <button class="sec" id="demo">Revenir aux matchs démo</button>
+  <div class="msg" id="msg" role="alert"></div>
+  <p class="aide">Le premier chargement prend plusieurs minutes (limite de l'offre gratuite). Les matchs s'affichent au fur et à mesure, puis les chargements suivants sont plus rapides.</p>
+  <p class="aide">Les absences ne sont pas disponibles dans les données gratuites : utilise les boutons « Absent(s) » sur chaque match si tu as l'information. L'appli ne peut ni détecter de matchs truqués ni connaître les motivations cachées.</p>
+</div>
+
+<p class="avert">Ce sont des estimations statistiques, pas des certitudes. Ne mise jamais d'argent que tu ne peux pas perdre.</p>
+
+<script>
+var LIGUES=[["PL","Premier League"],["ELC","Championship"],["PD","Liga"],["SA","Serie A"],["BL1","Bundesliga"],["FL1","Ligue 1"],["DED","Eredivisie"],["PPL","Liga Portugal"],["BSA","Brasileirão"],["CL","Ligue des champions"]];
+var SEUIL=55,LISSAGE=6,DOM=1.1,EXT=0.9,POIDS_PREC=0.4,P_MT=20;
+var DEMO=[
+  {l:"Premier League",h:"Arsenal",a:"Chelsea",hx:1.55,ax:1.15,d:null,k:"d1"},
+  {l:"Serie A",h:"Inter",a:"Torino",hx:1.70,ax:0.85,d:null,k:"d2"},
+  {l:"Eredivisie",h:"Ajax",a:"PSV",hx:1.45,ax:1.50,d:null,k:"d3"}
+];
+var tous=DEMO,enDemo=true,jourChoisi=0,dernierAppel=0,occupe=false,precOK=true,abs={};
+try{abs=JSON.parse(localStorage.getItem("jd_abs"))||{}}catch(e){}
+
+var vue="matchs",hist=[],resultats={},effaceArme=false;
+try{hist=JSON.parse(localStorage.getItem("jd_hist"))||[]}catch(e){}
+function sauverHist(){try{localStorage.setItem("jd_hist",JSON.stringify(hist))}catch(e){}}
+function setVue(v){vue=v;effaceArme=false;if(v==="hist")verifier();dessiner()}
+function renderNav(){
+  var n=[["matchs","Matchs"],["coupons","Coupons VIP"],["hist","Historique"]];
+  document.getElementById("nav").innerHTML=n.map(function(x){return '<button class="'+(vue===x[0]?"on":"")+'" onclick="setVue(\''+x[0]+'\')">'+x[1]+'</button>'}).join("");
+}
+function pois(l,k){var r=Math.exp(-l);for(var i=1;i<=k;i++)r*=l/i;return r}
+function analyse(hx,ax){
+  var h=0,n=0,a=0,btts=0,o25=0,tot=0,best=0,sc="0-0";
+  for(var i=0;i<10;i++){for(var j=0;j<10;j++){
+    var p=pois(hx,i)*pois(ax,j);tot+=p;
+    if(i>j)h+=p;else if(i===j)n+=p;else a+=p;
+    if(i>0&&j>0)btts+=p;
+    if(i+j>=3)o25+=p;
+    if(p>best){best=p;sc=i+"-"+j}
+  }}
+  var r=function(x){return Math.round(x/tot*100)};
+  var res={h:r(h),n:r(n),a:r(a),btts:r(btts),o25:r(o25),score:sc};
+  res.conf=Math.max(res.h,res.n,res.a);
+  return res;
+}
+function mitemps(lam,s){
+  var l1=lam*s,l2=lam*(1-s),p1=0,p2=0,pe=0;
+  for(var i=0;i<9;i++)for(var j=0;j<9;j++){var p=pois(l1,i)*pois(l2,j);if(i>j)p1+=p;else if(j>i)p2+=p;else pe+=p}
+  var t=p1+p2+pe;
+  return {l1:l1,l2:l2,p1:Math.round(p1/t*100),p2:Math.round(p2/t*100),pe:Math.round(pe/t*100)};
+}
+function esc(s){var d=document.createElement("div");d.textContent=s;return d.innerHTML}
+function f1(x){return x.toFixed(1).replace(".",",")}
+function cleJour(d){return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2)}
+function jourPlus(n){var d=new Date();d.setDate(d.getDate()+n);return d}
+function libJour(n){if(n===0)return "Aujourd'hui";if(n===1)return "Demain";return jourPlus(n).toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"})}
+function lire(k,duree){try{var o=JSON.parse(localStorage.getItem(k));if(o&&Date.now()-o.t<duree)return o.d}catch(e){}return null}
+function ecrire(k,d){try{localStorage.setItem(k,JSON.stringify({t:Date.now(),d:d}))}catch(e){}}
+function attendre(ms){return new Promise(function(r){setTimeout(r,ms)})}
+function msg(t){document.getElementById("msg").textContent=t}
+function majMode(t){document.getElementById("mode").textContent=t}
+function err(m,c){var e=new Error(m);e.code=c;return e}
+function choisir(n){jourChoisi=n;dessiner()}
+function basc(k,c){abs[k]=abs[k]||{};abs[k][c]=!abs[k][c];try{localStorage.setItem("jd_abs",JSON.stringify(abs))}catch(e){}dessiner()}
+
+function calc(m){
+  var ab=abs[m.k]||{},hx=m.hx,ax=m.ax;
+  if(ab.h){hx*=0.88;ax*=1.06}
+  if(ab.a){ax*=0.88;hx*=1.06}
+  return {r:analyse(hx,ax),t:m.s!==undefined?mitemps(hx+ax,m.s):null};
+}
+var TYPES=[["O25","Coupon Plus de 2,5 buts"],["MT","Coupon mi-temps la plus prolifique"],["N","Coupon normal (1N2)"]];
+function libPick(i){
+  if(i.pick==="O25")return "Plus de 2,5 buts";
+  if(i.pick==="MT1")return "Plus de buts en 1re mi-temps";
+  if(i.pick==="MT2")return "Plus de buts en 2e mi-temps";
+  if(i.pick==="1")return "Victoire "+i.h;
+  if(i.pick==="2")return "Victoire "+i.a;
+  return "Match nul";
+}
+function selections(jour){
+  var now=Date.now();
+  var l=tous.filter(function(m){return m.j===jour&&m.s!==undefined&&m.d.getTime()>now}).map(function(m){return {m:m,c:calc(m)}});
+  function it(x,pick,p){var m=x.m;return {k:m.k,code:m.code,hid:m.hid,aid:m.aid,l:m.l,h:m.h,a:m.a,d:m.d.getTime(),j:m.j,pick:pick,p:p}}
+  var o=l.filter(function(x){return x.c.r.o25>=55}).sort(function(a,b){return b.c.r.o25-a.c.r.o25}).slice(0,3).map(function(x){return it(x,"O25",x.c.r.o25)});
+  var mt=l.filter(function(x){var t=x.c.t;return Math.abs(t.p1-t.p2)>=12&&Math.max(t.p1,t.p2)>=42}).sort(function(a,b){return Math.abs(b.c.t.p1-b.c.t.p2)-Math.abs(a.c.t.p1-a.c.t.p2)}).slice(0,3).map(function(x){var t=x.c.t;return it(x,t.p1>t.p2?"MT1":"MT2",Math.max(t.p1,t.p2))});
+  var n=l.filter(function(x){return x.c.r.conf>=SEUIL}).sort(function(a,b){return b.c.r.conf-a.c.r.conf}).slice(0,3).map(function(x){var r=x.c.r;return it(x,(r.h>=r.n&&r.h>=r.a)?"1":(r.a>=r.n?"2":"N"),r.conf)});
+  return {O25:o,MT:mt,N:n};
+}
+function htmlCoupons(jour){
+  if(enDemo)return '<div class="carte">Charge d\'abord les vrais matchs pour voir les coupons.</div>';
+  var S=selections(jour),h='<p class="info">Sélections les plus fortes selon le modèle, jamais forcées : sans sélection assez solide, le coupon reste vide. Aucun gain n\'est garanti.</p>';
+  TYPES.forEach(function(t){
+    var L=S[t[0]],id=t[0]+"|"+jour,deja=hist.some(function(c){return c.id===id});
+    var pc=L.reduce(function(a,x){return a*x.p/100},1);
+    h+='<div class="carte cp"><h3>'+t[1]+'</h3>';
+    if(!L.length)h+='<p class="info">Aucune sélection assez solide pour ce jour.</p>';
+    else{
+      L.forEach(function(x){
+        h+='<div class="it"><div><b>'+esc(x.h)+' vs '+esc(x.a)+'</b><small>'+esc(x.l)+' · '+new Date(x.d).toLocaleString("fr-FR",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})+'</small><small>'+esc(libPick(x))+'</small></div><b>'+x.p+' %</b></div>';
+      });
+      h+='<p class="info">Probabilité que tout le coupon passe : <b>≈ '+Math.round(pc*100)+' %</b></p>'
+        +'<button class="'+(deja?"sec":"prim")+'" '+(deja?"disabled":"")+' onclick="enregistrer(\''+t[0]+'\')">'+(deja?"Déjà enregistré":"Enregistrer dans l'historique")+'</button>';
+    }
+    h+='</div>';
+  });
+  return h;
+}
+function enregistrer(type){
+  var jour=cleJour(jourPlus(jourChoisi)),L=selections(jour)[type],id=type+"|"+jour;
+  if(!L.length||hist.some(function(c){return c.id===id}))return;
+  var ti=TYPES.filter(function(t){return t[0]===type})[0][1];
+  hist.unshift({id:id,titre:ti,jour:jour,cree:Date.now(),items:L});
+  sauverHist();dessiner();
+}
+function evalItem(i,r){
+  var hg=r[3],ag=r[4],h1=r[5],a1=r[6],tot=hg+ag;
+  if(i.pick==="O25")return tot>=3;
+  if(i.pick==="1")return hg>ag;
+  if(i.pick==="N")return hg===ag;
+  if(i.pick==="2")return hg<ag;
+  if(i.pick==="MT1"||i.pick==="MT2"){
+    if(h1==null||a1==null)return null;
+    var f=h1+a1,sd=tot-f;
+    return i.pick==="MT1"?f>sd:sd>f;
+  }
+  return null;
+}
+function verifier(){
+  var chg=false;
+  hist.forEach(function(c){c.items.forEach(function(i){
+    if(i.res)return;
+    var r=resultats[i.code+"|"+i.hid+"|"+i.aid+"|"+i.j];
+    if(r){i.res={sc:r[3]+"-"+r[4],ok:evalItem(i,r)};chg=true}
+  })});
+  if(chg)sauverHist();
+}
+function statut(c){
+  if(c.items.some(function(i){return i.res&&i.res.ok===false}))return "Perdu";
+  if(c.items.some(function(i){return !i.res}))return "En cours";
+  if(c.items.every(function(i){return i.res.ok===true}))return "Gagné";
+  return "Non vérifiable";
+}
+function htmlHist(){
+  var gi=0,pi=0,gc=0,tc=0;
+  hist.forEach(function(c){
+    var st=statut(c);
+    if(st==="Gagné"){gc++;tc++}else if(st==="Perdu")tc++;
+    c.items.forEach(function(i){if(i.res&&i.res.ok===true)gi++;else if(i.res&&i.res.ok===false)pi++});
+  });
+  var h='<div class="carte"><div class="stats"><div><b>'+(gi+pi?Math.round(gi/(gi+pi)*100)+' %':'—')+'</b><span>Sélections gagnées ('+gi+'/'+(gi+pi)+')</span></div><div><b>'+(tc?Math.round(gc/tc*100)+' %':'—')+'</b><span>Coupons gagnés ('+gc+'/'+tc+')</span></div></div><p class="info">Historique gardé sur cet appareil. Les résultats se mettent à jour à chaque chargement des matchs.</p></div>';
+  if(!hist.length)h+='<div class="carte">Aucun coupon enregistré pour l\'instant.</div>';
+  hist.forEach(function(c){
+    var st=statut(c),cl=st==="Gagné"?"ok":st==="Perdu"?"ko":"at";
+    h+='<div class="carte cp"><h3>'+esc(c.titre)+'</h3><p class="info">'+esc(c.jour)+' · <b class="'+cl+'">'+st+'</b></p>';
+    c.items.forEach(function(i){
+      var r=i.res?(esc(i.res.sc)+(i.res.ok===true?' <span class="ok">✓</span>':i.res.ok===false?' <span class="ko">✗</span>':' ?')):'<span class="at">en attente</span>';
+      h+='<div class="it"><div><b>'+esc(i.h)+' vs '+esc(i.a)+'</b><small>'+esc(libPick(i))+' ('+i.p+' %)</small></div><div>'+r+'</div></div>';
+    });
+    h+='</div>';
+  });
+  if(hist.length)h+='<button class="sec" onclick="effacer()">'+(effaceArme?"Confirmer l'effacement":"Effacer l'historique")+'</button>';
+  return h;
+}
+function effacer(){if(!effaceArme){effaceArme=true}else{hist=[];sauverHist();effaceArme=false}dessiner()}
+
+function dessiner(){
+  renderNav();
+  if(vue==="hist"){document.getElementById("onglets").innerHTML="";document.getElementById("liste").innerHTML=htmlHist();return}
+  var cles=[0,1,2,3,4,5,6].map(function(n){return cleJour(jourPlus(n))});
+  var ong="";
+  if(!enDemo){
+    cles.forEach(function(c,n){
+      var nb=tous.filter(function(m){return m.j===c}).length;
+      ong+='<button class="'+(n===jourChoisi?"on":"")+'" onclick="choisir('+n+')">'+libJour(n)+' ('+nb+')</button>';
+    });
+  }
+  document.getElementById("onglets").innerHTML=ong;
+  if(vue==="coupons"){document.getElementById("liste").innerHTML=htmlCoupons(cles[jourChoisi]);return}
+  var liste=enDemo?tous:tous.filter(function(m){return m.j===cles[jourChoisi]}).sort(function(x,y){return x.d-y.d});
+  var html="";
+  if(!liste.length)html='<div class="carte">'+(occupe?"Chargement en cours…":"Aucun match ce jour-là dans les championnats suivis. Essaie un autre jour.")+'</div>';
+  liste.forEach(function(m){
+    var ab=abs[m.k]||{},hx=m.hx,ax=m.ax;
+    if(ab.h){hx*=0.88;ax*=1.06}
+    if(ab.a){ax*=0.88;hx*=1.06}
+    var r=analyse(hx,ax),sig=r.conf>=SEUIL;
+    var date=m.d?m.d.toLocaleString("fr-FR",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}):"";
+    html+='<div class="carte"><p class="ligue">'+esc(m.l)+'</p>'
+      +'<p class="equipes">'+esc(m.h)+' vs '+esc(m.a)+'</p>'
+      +'<p class="date">'+esc(date)+'</p>'
+      +'<div class="barre"><i class="b1" style="width:'+r.h+'%"></i><i class="bn" style="width:'+r.n+'%"></i><i class="b2" style="width:'+r.a+'%"></i></div>'
+      +'<div class="legende"><span>1 : '+r.h+'%</span><span>N : '+r.n+'%</span><span>2 : '+r.a+'%</span></div>'
+      +'<div class="stats"><div><b>'+r.btts+'%</b><span>Les deux marquent</span></div><div><b>'+r.o25+'%</b><span>Plus de 2,5 buts</span></div><div><b>'+r.score+'</b><span>Score probable</span></div></div>';
+    if(m.s!==undefined){
+      var t=mitemps(hx+ax,m.s),nom,txt;
+      if(Math.abs(t.p1-t.p2)<5){nom="Pas d'écart net"}else{nom=t.p1>t.p2?"1re mi-temps":"2e mi-temps"}
+      txt='Mi-temps la plus prolifique : <b>'+nom+'</b><br>1re : '+t.p1+' % · 2e : '+t.p2+' % · égalité : '+t.pe+' %<br>Buts attendus : 1re '+f1(t.l1)+' · 2e '+f1(t.l2);
+      html+='<div class="mt">'+txt+'</div>'
+        +'<p class="info">Forme (récent → ancien) : <b>'+esc(m.fh||"—")+'</b> ('+esc(m.h)+') · <b>'+esc(m.fa||"—")+'</b> ('+esc(m.a)+')</p>'
+        +'<p class="info">Face-à-face : '+(m.h2.n?'<b>'+m.h2.n+' match(s)</b> — '+m.h2.v+'V '+m.h2.x+'N '+m.h2.d+'D pour '+esc(m.h):'pas d\'historique disponible')+'</p>'
+        +'<p class="info">Enjeu : <b>'+esc(m.en)+'</b></p>'
+        +'<div class="abs"><button class="mini '+(ab.h?'on':'')+'" onclick="basc(\''+m.k+'\',\'h\')">⚠ Absent(s) '+esc(m.h)+'</button><button class="mini '+(ab.a?'on':'')+'" onclick="basc(\''+m.k+'\',\'a\')">⚠ Absent(s) '+esc(m.a)+'</button></div>';
+    }
+    html+='<div class="pied"><span>Confiance : '+r.conf+'%</span><span class="badge '+(sig?'signal':'nobet')+'">'+(sig?'SIGNAL':'NO BET')+'</span></div></div>';
+  });
+  document.getElementById("liste").innerHTML=html;
+}
+
+async function api(chemin,relais){
+  var r=await fetch(relais+(relais.indexOf("?")<0?"?":"&")+"chemin="+encodeURIComponent(chemin));
+  if(!r.ok)throw err("Erreur du relais ("+r.status+").");
+  var j;
+  try{j=await r.json()}catch(e){throw err("Le relais ne répond pas correctement. Vérifie l'adresse et que l'accès est réglé sur « Tout le monde ».")}
+  if(j.errorCode===429)throw err("Trop de demandes.",429);
+  if(j.errorCode===403||j.errorCode===401)throw err("Accès refusé (clé incorrecte ou donnée non incluse).",403);
+  if(j.error||j.errorCode)throw err(j.message||j.error||"Erreur de données.");
+  return j;
+}
+async function appel(chemin,relais,deuxieme){
+  var delta=Date.now()-dernierAppel;
+  if(delta<6500)await attendre(6500-delta);
+  dernierAppel=Date.now();
+  try{return await api(chemin,relais)}
+  catch(e){
+    if(e.code===429&&!deuxieme){majMode("Limite atteinte, pause d'une minute…");await attendre(62000);return appel(chemin,relais,true)}
+    throw e;
+  }
+}
+async function finis(code,extra,relais,cle,ttl){
+  var c=lire(cle,ttl);if(c)return c;
+  var rep=(await appel("competitions/"+code+"/matches?status=FINISHED"+extra,relais)).matches||[];
+  var out=rep.filter(function(x){return x.score&&x.score.fullTime&&x.score.fullTime.home!=null&&x.score.fullTime.away!=null}).map(function(x){
+    var h=x.score.halfTime||{};
+    return [Date.parse(x.utcDate),x.homeTeam.id,x.awayTeam.id,x.score.fullTime.home,x.score.fullTime.away,h.home==null?null:h.home,h.away==null?null:h.away];
+  });
+  ecrire(cle,out);
+  return out;
+}
+
+function forme(id,hist){
+  var l=hist.filter(function(r){return r[1]===id||r[2]===id}).sort(function(x,y){return y[0]-x[0]}).slice(0,5),s=[],pts=0;
+  l.forEach(function(r){var d=r[1]===id?r[3]-r[4]:r[4]-r[3];s.push(d>0?"V":d<0?"D":"N");pts+=d>0?3:d===0?1:0});
+  return {s:s.join(" "),pts:pts,n:l.length};
+}
+function h2h(a,b,hist){
+  var l=hist.filter(function(r){return (r[1]===a&&r[2]===b)||(r[1]===b&&r[2]===a)}).sort(function(x,y){return y[0]-x[0]}).slice(0,5),v=0,x=0,d=0;
+  l.forEach(function(r){var g=r[1]===a?r[3]-r[4]:r[4]-r[3];if(g>0)v++;else if(g<0)d++;else x++});
+  return {n:l.length,v:v,x:x,d:d};
+}
+function tableau(cur){
+  var T={};
+  cur.forEach(function(r){
+    var H=T[r[1]]||(T[r[1]]={p:0,n:0,d:0}),A=T[r[2]]||(T[r[2]]={p:0,n:0,d:0});
+    H.n++;A.n++;H.d+=r[3]-r[4];A.d+=r[4]-r[3];
+    if(r[3]>r[4])H.p+=3;else if(r[3]<r[4])A.p+=3;else{H.p++;A.p++}
+  });
+  var ids=Object.keys(T).sort(function(a,b){return T[b].p-T[a].p||T[b].d-T[a].d}),R={};
+  ids.forEach(function(id,i){R[id]={pos:i+1,n:T[id].n,tot:ids.length}});
+  return R;
+}
+function zone(R,id){var r=R[id];if(!r||r.n<8||r.tot<10)return "";if(r.pos<=3)return "haut";if(r.pos>r.tot-3)return "bas";return "mil"}
+function libEnjeu(a,b,cl){
+  if(cl)return "Compétition à phases : classement non comparable";
+  if(!a&&!b)return "Début de saison : enjeu peu lisible";
+  if(a==="haut"&&b==="haut")return "Choc du haut de tableau (enjeu fort)";
+  if(a==="bas"&&b==="bas")return "Duel pour le maintien (enjeu fort)";
+  if((a==="haut"&&b==="bas")||(a==="bas"&&b==="haut"))return "Haut contre bas de tableau";
+  if(a==="haut"||b==="haut")return "Une équipe en course pour le haut du classement";
+  if(a==="bas"||b==="bas")return "Une équipe menacée par la relégation";
+  return "Milieu de tableau : enjeu modéré";
+}
+
+async function ligue(i,relais,debut,fin){
+  var code=LIGUES[i][0],nom=LIGUES[i][1];
+  var kM="jd_m2_"+code+"_"+debut+"_"+fin,ms=lire(kM,10800000);
+  if(!ms){
+    var rep=(await appel("competitions/"+code+"/matches?dateFrom="+debut+"&dateTo="+fin,relais)).matches||[];
+    var an=0;
+    if(rep.length&&rep[0].season&&rep[0].season.startDate)an=parseInt(rep[0].season.startDate.slice(0,4),10);
+    ms={an:an,l:rep.filter(function(m){return m.status==="SCHEDULED"||m.status==="TIMED"}).map(function(m){
+      return {h:m.homeTeam.id,hn:m.homeTeam.shortName||m.homeTeam.name,a:m.awayTeam.id,an:m.awayTeam.shortName||m.awayTeam.name,u:m.utcDate};
+    })};
+    ecrire(kM,ms);
+  }
+  if(!ms.l.length)return;
+  var cur=await finis(code,"",relais,"jd_f_"+code+"_"+ms.an,21600000),prec=[];
+  if(precOK&&ms.an){
+    try{prec=await finis(code,"&season="+(ms.an-1),relais,"jd_f_"+code+"_"+(ms.an-1),604800000)}
+    catch(e){if(e.message==="Failed to fetch")throw e;precOK=false}
+  }
+  var hist=cur.map(function(r){return r.concat([1])}).concat(prec.map(function(r){return r.concat([POIDS_PREC])}));
+  var S={},G=0,N=0,G1=0,GT=0;
+  function get(id){return S[id]||(S[id]={gf:0,ga:0,n:0,g1:0,gt:0})}
+  hist.forEach(function(r){
+    var w=r[7],H=get(r[1]),A=get(r[2]);
+    H.gf+=w*r[3];H.ga+=w*r[4];H.n+=w;A.gf+=w*r[4];A.ga+=w*r[3];A.n+=w;
+    G+=w*(r[3]+r[4]);N+=2*w;
+    if(r[5]!=null&&r[6]!=null){
+      var g1=w*(r[5]+r[6]),gt=w*(r[3]+r[4]);
+      G1+=g1;GT+=gt;H.g1+=g1;H.gt+=gt;A.g1+=g1;A.gt+=gt;
+    }
+  });
+  var moy=N?G/N:1.35,slg=GT?G1/GT:0.45;
+  function force(id){
+    var t=S[id];if(!t)return {a:1,d:1,s:slg};
+    return {a:((t.gf+LISSAGE*moy)/(t.n+LISSAGE))/moy,d:((t.ga+LISSAGE*moy)/(t.n+LISSAGE))/moy,s:(t.g1+P_MT*slg)/(t.gt+P_MT)};
+  }
+  var R=tableau(cur);
+  cur.forEach(function(r){resultats[code+"|"+r[1]+"|"+r[2]+"|"+cleJour(new Date(r[0]))]=r});
+  ms.l.forEach(function(m){
+    var A=force(m.h),B=force(m.a),d=new Date(m.u),j=cleJour(d);
+    var fh=forme(m.h,hist),fa=forme(m.a,hist),hh=h2h(m.h,m.a,hist);
+    var hx=moy*DOM*A.a*B.d,ax=moy*EXT*B.a*A.d;
+    if(fh.n>=3)hx*=1+0.08*(fh.pts-7.5)/7.5;
+    if(fa.n>=3)ax*=1+0.08*(fa.pts-7.5)/7.5;
+    if(hh.n>=3){var sh=(hh.v-hh.d)/hh.n;hx*=1+0.05*sh;ax*=1-0.05*sh}
+    tous.push({code:code,hid:m.h,aid:m.a,l:nom,h:m.hn,a:m.an,hx:hx,ax:ax,d:d,j:j,s:(A.s+B.s)/2,fh:fh.s,fa:fa.s,h2:hh,en:libEnjeu(zone(R,m.h),zone(R,m.a),code==="CL"),k:code+m.h+"-"+m.a+"-"+j});
+  });
+}
+
+async function charger(relais){
+  if(occupe)return;
+  occupe=true;enDemo=false;tous=[];precOK=true;msg("");
+  document.getElementById("charger").disabled=true;
+  dessiner();
+  var debut=cleJour(jourPlus(0)),fin=cleJour(jourPlus(7)),echecs=[],coupe=false;
+  for(var i=0;i<LIGUES.length;i++){
+    majMode("Chargement… "+(i+1)+"/"+LIGUES.length+" — "+LIGUES[i][1]);
+    try{await ligue(i,relais,debut,fin)}
+    catch(e){
+      if(e.message==="Failed to fetch"){msg("Impossible de joindre le relais. Vérifie ta connexion et l'adresse collée.");coupe=true;break}
+      echecs.push(e);
+    }
+    dessiner();
+  }
+  occupe=false;
+  document.getElementById("charger").disabled=false;
+  if(coupe){enDemo=true;tous=DEMO;majMode("Mode démo — pas de données en temps réel");dessiner();return}
+  majMode("Données réelles — prochains jours"+(precOK?"":" (saison précédente non disponible)"));
+  if(echecs.length===LIGUES.length)msg(echecs[0].message);
+  else if(echecs.length)msg(echecs.length+" championnat(s) non chargé(s). Réessaie dans quelques minutes.");
+  else try{localStorage.setItem("jemosdy_relais",relais)}catch(e){}
+  var c7=[0,1,2,3,4,5,6].map(function(n){return cleJour(jourPlus(n))});
+  if(!tous.some(function(m){return m.j===c7[jourChoisi]})){
+    for(var n=0;n<7;n++){if(tous.some(function(m){return m.j===c7[n]})){jourChoisi=n;break}}
+  }
+  verifier();
+  dessiner();
+}
+
+document.getElementById("charger").onclick=function(){
+  var c=document.getElementById("cle").value.trim();
+  if(!c){msg("Colle d'abord l'adresse de ton relais.");return}
+  try{localStorage.setItem("jemosdy_relais",c)}catch(e){}
+  charger(c);
+};
+document.getElementById("demo").onclick=function(){
+  if(occupe)return;
+  msg("");enDemo=true;tous=DEMO;majMode("Mode démo — pas de données en temps réel");dessiner();
+};
+
+var gardee="";
+try{gardee=localStorage.getItem("jemosdy_relais")||""}catch(e){}
+if(gardee){document.getElementById("cle").value=gardee;charger(gardee)}
+else{majMode("Mode démo — pas de données en temps réel");dessiner()}
+</script>
+</body>
+</html>
