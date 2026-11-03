@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#05060f">
+<title>AI Luntadi</title>
+<style>
+:root{--bg:#05060f;--c:#0e1630;--t:#e8ecff;--m:#8d97c4;--a:#5b6cff;--f:#17204a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--t);font:16px/1.45 system-ui,sans-serif;padding:16px 16px 90px}
+h1{margin:0;font-size:26px}
+.sub{color:#35d0e6;font-size:13px;margin:2px 0 14px}
+h3{margin:16px 0 8px}
+.card{background:var(--c);border-radius:16px;padding:14px;margin-bottom:12px}
+textarea,input{width:100%;background:#040612;color:var(--t);border:1px solid #26305a;border-radius:12px;padding:10px;font:inherit}
+textarea{min-height:100px;margin-top:8px}
+.row{display:flex;gap:8px}
+.chip{flex:1;padding:12px;border-radius:12px;background:var(--f);color:var(--t);border:0;font:inherit}
+.chip.on{background:var(--a)}
+.btn{width:100%;padding:14px;border:0;border-radius:12px;background:var(--a);color:#fff;font:600 16px system-ui;margin-top:10px}
+.btn.sm{width:auto;background:var(--f);padding:8px 14px;margin:8px 8px 0 0;font-size:14px}
+.btn.alt{background:var(--f)}
+.k{color:var(--m);font-size:13px;margin:10px 0 4px}
+.tx{-webkit-user-select:text;user-select:text;white-space:pre-wrap;word-break:break-word;background:#040612;border-radius:10px;padding:10px;font-size:14px}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;gap:8px;background:#0a1030;padding:8px}
+nav button{flex:1;padding:12px;border:0;border-radius:12px;background:none;color:var(--m);font:inherit}
+nav button.on{background:var(--f);color:#fff}
+</style></head><body>
+<h1>AI Luntadi</h1>
+<div class="sub">Script, scènes et prompts pour tes vidéos verticales 9:16</div>
+<div id="v"></div>
+<nav>
+<button data-t="c" onclick="go('c')">Créer</button>
+<button data-t="v" onclick="go('v')">Mes vidéos</button>
+<button data-t="r" onclick="go('r')">Réglages</button>
+</nav>
+<script>
+const $=id=>document.getElementById(id);
+let dur=30,cur=null,tab="c",cp=[];
+const ls={
+ get(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v==null?d:v}catch(e){return d}},
+ set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+};
+const esc=s=>String(s==null?"":s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+const msg=t=>{const e=$("m");if(e)e.textContent=t};
+function copy(t,b){
+ const ok=()=>{if(b){const o=b.textContent;b.textContent="Copié ✓";setTimeout(()=>{b.textContent=o},1500)}};
+ const fb=()=>{const a=document.createElement("textarea");a.value=t;document.body.appendChild(a);a.select();try{document.execCommand("copy");ok()}catch(e){}a.remove()};
+ if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(t).then(ok,fb);else fb();
+}
+function go(t){tab=t;render()}
+function scene(s,i){
+ cp.push(s.texte);const a=cp.length-1;
+ cp.push(s.prompt_video);const b=cp.length-1;
+ return `<div class="card"><b>Scène ${i+1}</b>
+<div class="k">Narration</div><div class="tx">${esc(s.texte)}</div>
+<button class="btn sm" onclick="copy(cp[${a}],this)">Copier le texte</button>
+<div class="k">Prompt vidéo pour Kling ou Dreamina</div><div class="tx">${esc(s.prompt_video)}</div>
+<button class="btn sm" onclick="copy(cp[${b}],this)">Copier le prompt</button></div>`;
+}
+function render(){
+ if($("sujet"))ls.set("draft",$("sujet").value);
+ cp=[];
+ document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.t==tab));
+ let h="";
+ if(tab=="c"){
+  h=`<div class="card"><b>Décris la vidéo que tu veux créer</b>
+<textarea id="sujet" placeholder="Ex : Découvre le marché central de Boma">${esc(ls.get("draft",""))}</textarea>
+<div class="k">Durée</div><div class="row">${[15,30,60].map(d=>`<button class="chip ${d==dur?"on":""}" onclick="dur=${d};render()">${d} s</button>`).join("")}</div>
+<button id="go" class="btn" onclick="gen()">Générer le script et les prompts</button>
+<div id="m" class="k"></div></div>`;
+  if(cur){
+   h+=`<h3>${esc(cur.titre)}</h3>`+cur.scenes.map(scene).join("");
+   cp.push(cur.scenes.map((s,i)=>"Scène "+(i+1)+"\n"+s.texte+"\n"+s.prompt_video).join("\n\n"));
+   h+=`<button class="btn" onclick="copy(cp[${cp.length-1}],this)">Copier tout</button>
+<button class="btn alt" onclick="save()">Enregistrer dans Mes vidéos</button>`;
+  }
+ }else if(tab=="v"){
+  const L=ls.get("vids",[]);
+  h=L.length?L.map((v,i)=>`<div class="card"><b>${esc(v.titre)}</b><div class="k">${esc(v.date)}, ${v.scenes.length} scènes</div>
+<button class="btn sm" onclick="cur=ls.get('vids',[])[${i}];go('c')">Ouvrir</button>
+<button class="btn sm" onclick="del(${i})">Supprimer</button></div>`).join(""):`<div class="card k">Aucun projet enregistré. Génère une vidéo puis appuie sur Enregistrer.</div>`;
+ }else{
+  h=`<div class="card"><b>Clé Gemini gratuite</b>
+<div class="k">Crée-la sur aistudio.google.com/apikey, puis colle-la ici. Elle reste uniquement sur ton téléphone.</div>
+<input id="key" type="password" value="${esc(ls.get("key",""))}">
+<div class="k">Modèle</div><input id="mod" value="${esc(ls.get("model","gemini-flash-latest"))}">
+<button class="btn" onclick="ls.set('key',$('key').value.trim());ls.set('model',$('mod').value.trim()||'gemini-flash-latest');alert('Réglages enregistrés')">Enregistrer</button></div>`;
+ }
+ $("v").innerHTML=h;
+}
+async function gen(){
+ const sujet=$("sujet").value.trim(),key=ls.get("key","");
+ if(!sujet){msg("Écris d’abord le sujet de ta vidéo.");return}
+ if(!key){alert("Ajoute ta clé Gemini dans Réglages.");go("r");return}
+ ls.set("draft",sujet);
+ const n={15:3,30:5,60:8}[dur];
+ const p=`Tu es scénariste de vidéos verticales TikTok de ${dur} secondes. Sujet : ${sujet}. Écris ${n} scènes d’environ ${Math.round(dur/n)} secondes. Réponds uniquement en JSON : {"titre":"titre court","scenes":[{"texte":"narration en français, naturelle et vivante","prompt_video":"prompt détaillé en anglais pour un générateur de vidéo IA : décor, personnage, action, ambiance, mouvement de caméra, format vertical 9:16, sans texte à l’écran"}]}`;
+ msg("Génération en cours, patiente quelques secondes…");$("go").disabled=true;
+ try{
+  const u="https://generativelanguage.googleapis.com/v1beta/models/"+ls.get("model","gemini-flash-latest")+":generateContent?key="+encodeURIComponent(key);
+  const r=await fetch(u,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({contents:[{parts:[{text:p}]}],generationConfig:{responseMimeType:"application/json"}})});
+  const j=await r.json();
+  if(!r.ok)throw new Error(j.error&&j.error.message?j.error.message:r.status);
+  const t=j.candidates[0].content.parts.map(x=>x.text||"").join("");
+  cur=JSON.parse(t.replace(/```json|```/g,"").trim());
+  cur.date=new Date().toLocaleDateString("fr-FR");
+  render();
+ }catch(e){msg("Erreur : "+e.message);const g=$("go");if(g)g.disabled=false}
+}
+function save(){const L=ls.get("vids",[]);L.unshift(cur);ls.set("vids",L.slice(0,30));alert("Projet enregistré")}
+function del(i){const L=ls.get("vids",[]);L.splice(i,1);ls.set("vids",L);render()}
+render();
+</script></body></html>
